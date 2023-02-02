@@ -93,7 +93,7 @@ config DRM_KMS_HELPER
 
 config DRM_LOG
 	bool
-	depends on DRM && !VT
+	depends on DRM
 	select FONT_SUPPORT
 	default y
 
