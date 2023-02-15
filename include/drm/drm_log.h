@@ -41,7 +41,14 @@ void drm_log_draw(void *kern_map,
 		  size_t cpp,
 		  u32 pixel_format,
 		  size_t columns);
-
+void *drm_log_register_panic_fb(void);
+void drm_log_update_panic_fb(void * panic_fb,
+		  void *kern_map,
+		  size_t width,
+		  size_t height,
+		  size_t stride,
+		  size_t cpp,
+		  u32 pixel_format);
 #else
 
 static inline void drm_log_init(void) { }
@@ -57,6 +64,15 @@ static inline void drm_log_draw(void *kern_map,
 				u32 pixel_format,
 				size_t columns) { }
 
+static inline void *drm_log_register_panic(void) { return NULL;}
+
+static inline void drm_log_update_panic_fb(void * panic_fb,
+		  void *kern_map,
+		  size_t width,
+		  size_t height,
+		  size_t stride,
+		  size_t cpp,
+		  u32 pixel_format) {}
 #endif
 
 #endif /* __DRM_LOG_H__ */

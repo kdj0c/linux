@@ -33,12 +33,14 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/mutex.h>
+#include <linux/panic_notifier.h>
 #include <linux/rcupdate.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/swab.h>
 #include <linux/types.h>
 #include <linux/vmalloc.h>
+
 
 /**
  * DOC: drm log
@@ -107,6 +109,19 @@ struct dlog_buf {
 	atomic_t pos;
 	struct dlog_line lines[];
 };
+
+struct dlog_framebuffer {
+	struct list_head head;
+	void *kern_map;
+	size_t width;
+	size_t height;
+	size_t stride;
+	size_t cpp;
+	u32 pixel_format;
+	size_t columns;
+};
+
+static LIST_HEAD(dlog_fb);
 
 /* console-buffer management */
 static struct dlog_buf __rcu *dlog_buf;
@@ -1104,6 +1119,56 @@ static struct console dlog_con_driver = {
 	.flags = CON_PRINTBUFFER | CON_ENABLED,
 };
 
+static int drm_log_panic(struct notifier_block *this,
+			 unsigned long event, void *ptr)
+{
+	struct dlog_framebuffer *fb;
+	
+	list_for_each_entry(fb, &dlog_fb, head) {
+		if (!fb->kern_map)
+			continue;
+		drm_log_draw(fb->kern_map, fb->width, fb->height, fb->stride, fb->cpp, fb->pixel_format, fb->columns);
+	}
+	return 0;
+}
+
+struct notifier_block drm_log_panic_notifier = {
+	.notifier_call = drm_log_panic,
+};
+
+void *drm_log_register_panic_fb(void)
+{
+	struct dlog_framebuffer *new = (struct dlog_framebuffer *) kzalloc(sizeof(*new), GFP_KERNEL);
+
+	pr_info("Adding drmlog panic handler\n");
+	if (new)
+		list_add_tail(&new->head, &dlog_fb);
+	return (void *) new;
+}
+EXPORT_SYMBOL(drm_log_register_panic_fb);
+
+void drm_log_update_panic_fb(void *panic, void *kern_map,
+		  size_t width,
+		  size_t height,
+		  size_t stride,
+		  size_t cpp,
+		  u32 pixel_format)
+{
+	struct dlog_framebuffer *fb = (struct dlog_framebuffer *) panic;
+
+	pr_info("Updating drmlog panic handler\n");
+
+	fb->kern_map = kern_map;
+	fb->width = width;
+	fb->height = height;
+	fb->stride = stride;
+	fb->cpp = cpp;
+	fb->pixel_format = pixel_format;
+	fb->columns = 1;
+}
+EXPORT_SYMBOL(drm_log_update_panic_fb);
+
+
 /**
  * drm_log_init() - Initialize drm-log subsystem
  *
@@ -1138,6 +1203,9 @@ void drm_log_init(void)
 	drm_log_ensure_size(def_width, def_height);
 
 	register_console(&dlog_con_driver);
+
+	/* register panic handler */
+	atomic_notifier_chain_register(&panic_notifier_list, &drm_log_panic_notifier);
 }
 
 /**
@@ -1175,3 +1243,7 @@ void drm_log_exit(void)
 	dlog_font = NULL;
 	mutex_unlock(&dlog_wlock);
 }
+
+
+
+
