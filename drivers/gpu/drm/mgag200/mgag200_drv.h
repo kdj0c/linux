@@ -296,6 +296,7 @@ struct mga_device {
 	struct drm_encoder encoder;
 	struct mga_i2c_chan i2c;
 	struct drm_connector connector;
+	void * panic_fb;
 };
 
 static inline struct mga_device *to_mga_device(struct drm_device *dev)

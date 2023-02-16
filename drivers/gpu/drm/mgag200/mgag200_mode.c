@@ -19,6 +19,7 @@
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_gem_atomic_helper.h>
 #include <drm/drm_gem_framebuffer_helper.h>
+#include <drm/drm_log.h>
 #include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
 
@@ -436,6 +437,11 @@ static void mgag200_handle_damage(struct mga_device *mdev, const struct iosys_ma
 
 	iosys_map_incr(&dst, drm_fb_clip_offset(fb->pitches[0], fb->format, clip));
 	drm_fb_memcpy(&dst, fb->pitches, vmap, fb, clip);
+
+	if (mdev->panic_fb) {
+		struct iosys_map out = IOSYS_MAP_INIT_VADDR_IOMEM(mdev->vram);
+		drm_log_update_panic_fb(mdev->panic_fb, out.vaddr_iomem, fb->width, fb->height, fb->pitches[0], fb->format->cpp[0], fb->format->format);
+	}
 }
 
 /*
@@ -826,6 +832,8 @@ int mgag200_mode_config_init(struct mga_device *mdev, resource_size_t vram_avail
 	dev->mode_config.preferred_depth = 24;
 	dev->mode_config.funcs = &mgag200_mode_config_funcs;
 	dev->mode_config.helper_private = &mgag200_mode_config_helper_funcs;
+
+	mdev->panic_fb = drm_log_register_panic_fb();
 
 	return 0;
 }
