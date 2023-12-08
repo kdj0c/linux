@@ -150,6 +150,36 @@ config DRM_PANIC_SCREEN
 	  or by writing to /sys/module/drm/parameters/panic_screen sysfs entry
 	  Default is "user"
 
+config DRM_PANIC_SCREEN_QR_CODE
+	bool "Add a qr code panic screen"
+	depends on DRM_PANIC && RUST
+	help
+	  This option adds a qr code generator, and a panic screen with a QR
+	  code. The QR code will contain the last lines of kmsg and other debug
+	  information. This should be easier for the user to report a kernel
+	  panic, and for the kernel developers to debug it.
+	  You can then enable this panic screen, by setting "qr_code" to
+	  DRM_PANIC_SCREEN.
+
+config DRM_PANIC_SCREEN_QR_CODE_URL
+	string "Base url of the QR code in the panic screen"
+	depends on DRM_PANIC_SCREEN_QR_CODE
+	help
+	  This option allows to set the url to report the kernel panic. In this
+	  case the qr code will contain the url and the kmsg compressed with
+	  zlib as url parameter. If it's not set, the qr code will contain the
+	  kmsg as uncompressed text only.
+
+config DRM_PANIC_SCREEN_QR_SIZE
+	int "Amount of data to put into the QR Code"
+	depends on DRM_PANIC_SCREEN_QR_CODE
+	default 1024
+	help
+	  This option allows to change the number of bytes from kmsg that will
+	  be put in the qr_code when a kernel panic occurs.
+	  The larger, the more debugging data will be available, but the qr-code
+	  will be harder to read.
+
 config DRM_DEBUG_DP_MST_TOPOLOGY_REFS
         bool "Enable refcount backtrace history in the DP MST helpers"
 	depends on STACKTRACE_SUPPORT
