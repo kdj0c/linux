@@ -149,6 +149,8 @@ drm_kms_helper-y := \
 drm_kms_helper-$(CONFIG_DRM_PANEL_BRIDGE) += bridge/panel.o
 obj-$(CONFIG_DRM_KMS_HELPER) += drm_kms_helper.o
 
+obj-$(CONFIG_DRM_LOG) += drm_log.o
+
 #
 # DRM clients
 #
